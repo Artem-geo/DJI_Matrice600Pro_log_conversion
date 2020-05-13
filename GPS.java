@@ -1,4 +1,4 @@
-package gps;
+package djilog2text;
 
 import java.text.SimpleDateFormat;
 import java.util.*;
@@ -21,7 +21,7 @@ public class GPS {
 		this.heightMSL = new ArrayList<Double>();
 	}
 	
-	// добавляем данные в класс GPS
+	// populate GPS class by data from input file
 	public static void addDataToGPS(GPS gps, int firstColumn, String[] line) {	
 		gps.datetime.add(line[firstColumn+2]);
 		gps.lat.add(Double.parseDouble(line[firstColumn+1]));
@@ -29,13 +29,13 @@ public class GPS {
 		gps.heightMSL.add(Double.parseDouble(line[firstColumn+3]));		
 	}
 	
-	// конвертируем и добавляем время в класс GPS
+	// convert and put data into GPS class
 	public static void convertTime(GPS gps) throws Exception {
 		
 		Set<String> uniqueDatetime = new TreeSet<String>(gps.datetime);
 		String[] datetimeSeparate = new String[2];
 		
-		// создаём объект даты-времени для ввода
+		// create date-time object for input
 		String pattern = "yyyy-MM-dd HH:mm:ss.SSS";
         SimpleDateFormat simpleDateFormat = new SimpleDateFormat(pattern, new Locale("en", "GB"));
 		

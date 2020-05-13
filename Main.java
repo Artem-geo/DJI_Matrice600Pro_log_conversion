@@ -1,43 +1,59 @@
-package gps;
+package djilog2text;
 
+import java.io.File;
 import java.io.FileReader;
 import java.io.FileWriter;
+import java.net.URL;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.Locale;
 import java.util.Scanner;
-import java.util.Set;
-import java.util.TreeSet;
 
 public class Main {
 	public static void main(String[] args) throws Exception {
 		
-		// после отладки заменить путь в filereader на args[0]
+		
 		//////////////////////////////////////////////////////////////////////////////
-		FileReader fr = new FileReader("/home/artem/Documents/TestFiles/flight2_cut.csv");
-		FileWriter fw = new FileWriter("/home/artem/Documents/TestFiles/flight2_result.dat");
+//		FileReader fr = new FileReader("/home/artem/Documents/TestFiles/flight2_cut.csv");
+//		FileWriter fw = new FileWriter("/home/artem/Documents/TestFiles/flight2_result.dat");
 		/////////////////////////////////////////////////////////////////////////////
 		
+		// create time suffix for files and folder
+		SimpleDateFormat sdf = new SimpleDateFormat("_ddMM");
+		String timeSuffix = sdf.format(new Date(System.currentTimeMillis()));
+		
+		// create target folder near converter file
+		URL location = Main.class.getProtectionDomain().getCodeSource().getLocation();
+		String resPath = location.getPath() + "DJI_files" + timeSuffix;
+		String resFile = resPath + "/res" + timeSuffix + ".dat";
+		new File(resPath).mkdir();
+		
+		// catch initial file and create file with results of conversion
+		FileReader fr = new FileReader(args[0]);
+		FileWriter fw = new FileWriter(resFile);
+		
+		// create separate files for different GPSes		
 		///////////////////////////////////////////////////////////////////////////////
-		FileWriter gpsOneFile = new FileWriter("/home/artem/Documents/TestFiles/test/gpsOne.dat");
-		FileWriter gpsTwoFile = new FileWriter("/home/artem/Documents/TestFiles/test/gpsTwo.dat");
-		FileWriter gpsThreeFile = new FileWriter("/home/artem/Documents/TestFiles/test/gpsThree.dat");
-		FileWriter gpsResultCompare = new FileWriter("/home/artem/Documents/TestFiles/test/gpsCompare.dat");
+		FileWriter gpsOneFile = new FileWriter(resPath + "gpsOne" + timeSuffix + ".dat");
+		FileWriter gpsTwoFile = new FileWriter(resPath + "gpsTwo" + timeSuffix + ".dat");
+		FileWriter gpsThreeFile = new FileWriter(resPath + "gpsThree" + timeSuffix + ".dat");
+		FileWriter gpsResultCompare = new FileWriter(resPath + "gpsCompare" + timeSuffix + ".dat");
 		////////////////////////////////////////////////////////////////////////////////
 		
+		// format of date-time output
 		String pattern = "yyyy-MM-dd HH:mm:ss.SSS";
         SimpleDateFormat simpleDateFormat = new SimpleDateFormat(pattern, new Locale("en", "GB"));
         
 		Scanner scanner = new Scanner(fr);	
 		
-		// создаём объекты для трёх gps модулей
+		// instantiate GPS classes for three GPS modules of Matrice
 		GPS gpsOne = new GPS();
 		GPS gpsTwo = new GPS();
 		GPS gpsThree = new GPS();
 		
 		
-		// записываем данные в классы GPS: datetime, lat, lon, height(MSL)
+		// add data to GPS class: datetime, lat, lon, height(MSL)
 		String[] line = new String[12];
 		while (scanner.hasNextLine()) {
 			line = scanner.nextLine().split(",");
@@ -48,14 +64,14 @@ public class Main {
 		}
 		
 		
-		// записываем данные в классы GPS: Epoch, Date, Time
+		// convert date-time objects in GPS classes to Epoch, Date, Time
 		GPS.convertTime(gpsOne);
 		GPS.convertTime(gpsTwo);
 		GPS.convertTime(gpsThree);
 		
 		
 		
-		//создаём и наполняем класс GPS, содержащий средние значения
+		// create and fill GPS class with average GPS data
 		GPS gpsResult = new GPS();
 		
 		Date initGPS = simpleDateFormat.parse("1980-01-06 00:00:00.00");
@@ -69,14 +85,14 @@ public class Main {
 			int indexGpsTwo = getClosestIndex(gpsTwo.epoch, epochTimeOne);
 			int indexGpsThree = getClosestIndex(gpsThree.epoch, epochTimeOne);
 			
-			// среднее время Epoch
+			// average Epoch
 			long epochResultmean = (gpsOne.epoch.get(i)+gpsTwo.epoch.get(indexGpsTwo)+gpsThree.epoch.get(indexGpsThree))/3;
 			gpsResult.epoch.add(epochResultmean);
 			double gpsResultGPST = (double) (epochResultmean - initGPS.getTime())/1000 + 18;
 			fw.write(String.format(Locale.ROOT,"%.3f ", gpsResultGPST));
 			
 			
-			// средняя дата и время
+			// average date and time
 			long epochTimeTwo = gpsTwo.date.get(indexGpsTwo).getTime();
 			long epochTimeThree = gpsThree.date.get(indexGpsThree).getTime();
 			long gpsResultEpochMean = (epochTimeOne + epochTimeTwo + epochTimeThree) / 3;
@@ -85,7 +101,7 @@ public class Main {
 			
 			
 			
-			// средняя широта, долгота и высота
+			// average latitude, longitude and height
 			Double gpsResultLatTmean = (gpsOne.lat.get(i)+gpsTwo.lat.get(indexGpsTwo)+gpsThree.lat.get(indexGpsThree))/3;
 			gpsResult.lat.add(gpsResultLatTmean);
 			Double gpsResultLonTmean = (gpsOne.lon.get(i)+gpsTwo.lon.get(indexGpsTwo)+gpsThree.lon.get(indexGpsThree))/3;
@@ -141,7 +157,7 @@ public class Main {
 		            closest.dif = dif;
 		        }
 		        
-		        if(i<epoch.size()-1 && dif < Math.abs(value - epoch.get(i+1))) break; //закончить цикл, если следующее значение больше
+		        if(i<epoch.size()-1 && dif < Math.abs(value - epoch.get(i+1))) break; // break loop if next value is bigger than previous
 		    }
 		    return closest.index;
 		}
